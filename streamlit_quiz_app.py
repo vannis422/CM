@@ -2,31 +2,73 @@
 import streamlit as st
 import json
 import random
+import os
+from collections import defaultdict
 
-# 載入題庫
-with open("CM-1.json", "r", encoding="utf-8") as f:
-    questions = json.load(f)
+# 選擇考科
+subject = st.selectbox("請選擇考科別：", ["中醫基礎一", "中醫基礎二"])
 
-# 顯示標題
-st.title("🧪 中醫一階模擬測驗-2")
-st.markdown("固定出題：80 題，每題 1.25 分，共 100 分。")
+# 題目數設定
+category_config = {
+    "中醫基礎一": {
+        "file": "CM-1.json",
+        "title": "🧪 中醫一階模擬測驗-1",
+        "categories": {
+            "中藥學": 40,
+            "方劑學": 40
+        }
+    },
+    "中醫基礎二": {
+        "file": "CM-2.json",
+        "title": "🧪 中醫一階模擬測驗-2",
+        "categories": {
+            "內經": 40,
+            "難經": 20,
+            "中醫基礎理論": 10,
+            "中醫醫學史": 10
+        }
+    }
+}
 
-# 初始化 session state
-if "used_indices" not in st.session_state:
+st.title(category_config[subject]["title"])
+
+# 載入題庫並依分類抽題
+@st.cache_data
+def load_questions_by_category(file_path, category_rule):
+    with open(file_path, "r", encoding="utf-8") as f:
+        all_questions = json.load(f)
+
+    categorized = defaultdict(list)
+    for q in all_questions:
+        categorized[q["category"]].append(q)
+
+    selected = []
+    for cat, count in category_rule.items():
+        questions = categorized.get(cat, [])
+        if len(questions) < count:
+            st.warning(f"⚠️ 類別「{cat}」題數不足，只抽到 {len(questions)} 題")
+            count = len(questions)
+        selected += random.sample(questions, count)
+    
+    random.shuffle(selected)
+    return selected
+
+# 初始化 session_state
+if "questions" not in st.session_state:
+    file_path = category_config[subject]["file"]
+    category_rule = category_config[subject]["categories"]
+    st.session_state.questions = load_questions_by_category(file_path, category_rule)
     st.session_state.used_indices = set()
-if "score" not in st.session_state:
     st.session_state.score = 0
-if "current_q" not in st.session_state:
     st.session_state.current_q = None
-if "submitted" not in st.session_state:
     st.session_state.submitted = False
 
-# 按鈕開始或繼續
+# 顯示下一題
 if st.button("▶️ 下一題"):
-    remaining = list(set(range(len(questions))) - st.session_state.used_indices)
+    remaining = list(set(range(len(st.session_state.questions))) - st.session_state.used_indices)
     if remaining:
         idx = random.choice(remaining)
-        st.session_state.current_q = questions[idx]
+        st.session_state.current_q = st.session_state.questions[idx]
         st.session_state.used_indices.add(idx)
         st.session_state.submitted = False
     else:
@@ -46,11 +88,11 @@ if q:
             st.error(f"❌ 錯誤，正確答案是 {q['answer']}")
         st.session_state.submitted = True
 
-# 顯示成績
+# 顯示分數
 total_done = len(st.session_state.used_indices)
 st.info(f"目前得分：{st.session_state.score:.2f} / {total_done * 1.25:.2f} 分，共 {total_done} 題")
 
-# 重新開始
+# 重設
 if st.button("🔁 重新開始"):
     st.session_state.clear()
     st.success("✅ 已重設，請點選『下一題』開始測驗。")
