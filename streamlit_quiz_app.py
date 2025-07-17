@@ -4,11 +4,11 @@ import json
 import random
 
 # 載入題庫
-with open("parsed_10_questions.json", "r", encoding="utf-8") as f:
+with open("CM-1.json", "r", encoding="utf-8") as f:
     questions = json.load(f)
 
 # 顯示標題
-st.title("🧪 中醫一階模擬測驗")
+st.title("🧪 中醫一階模擬測驗-2")
 st.markdown("固定出題：80 題，每題 1.25 分，共 100 分。")
 
 # 初始化 session state
