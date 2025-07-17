@@ -1,0 +1,14 @@
+# Python 編譯後檔案
+__pycache__/
+*.py[cod]
+
+# 虛擬環境
+venv/
+.env
+
+# VS Code 設定
+.vscode/
+
+# 系統檔
+.DS_Store
+Thumbs.db
